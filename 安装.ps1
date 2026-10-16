@@ -1,4 +1,4 @@
-param([string]$Target = "C:\Program Files\Charles")
+﻿param([string]$Target = "C:\Program Files\Charles")
 
 $src = $PSScriptRoot
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -14,8 +14,13 @@ if (-not (Test-Path "$Target\Charles.exe")) {
     exit 1
 }
 
-Get-Process Charles -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep 2
+# Charles must be closed by the user, not killed: it is single-instance and can
+# lose an unsaved capture session on a forced exit.
+if (Get-Process Charles -ErrorAction SilentlyContinue) {
+    Write-Host "Charles 正在运行，请先从托盘图标选择 Quit 完全退出，然后重新运行本脚本。" -ForegroundColor Red
+    Read-Host "回车退出"
+    exit 1
+}
 
 if ((Test-Path "$Target\lib\charles.jar") -and -not (Test-Path "$Target\lib\charles.jar.bak")) {
     Copy-Item "$Target\lib\charles.jar" "$Target\lib\charles.jar.bak" -Force
